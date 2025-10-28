@@ -1,9 +1,78 @@
-import React, { useState } from 'react'
-import { Rocket, Sparkles, Image, Zap, Images, Crown } from 'lucide-react'
+import React, { useState, useRef } from 'react'
+import { Rocket, Sparkles, Image, Zap, Images, Crown, X, Copy } from 'lucide-react'
 
 const GeneratorSection = () => {
   const [prompt, setPrompt] = useState('')
   const [selectedModel, setSelectedModel] = useState('nano-banana')
+  const [uploadedImages, setUploadedImages] = useState([])
+  const [mode, setMode] = useState('image-to-image') // 'image-to-image' or 'text-to-image'
+  const fileInputRef = useRef(null)
+
+  const MAX_IMAGES = 9
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
+  // 处理文件选择
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files)
+    handleFiles(files)
+  }
+
+  // 处理拖放文件
+  const handleDrop = (e) => {
+    e.preventDefault()
+    const files = Array.from(e.dataTransfer.files)
+    handleFiles(files)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+  }
+
+  // 处理文件上传
+  const handleFiles = (files) => {
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+
+    const validFiles = imageFiles.filter(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`文件 ${file.name} 超过 10MB 限制`)
+        return false
+      }
+      return true
+    })
+
+    const remainingSlots = MAX_IMAGES - uploadedImages.length
+    const filesToAdd = validFiles.slice(0, remainingSlots)
+
+    filesToAdd.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setUploadedImages(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          file: file,
+          preview: e.target.result,
+          name: file.name
+        }])
+      }
+      reader.readAsDataURL(file)
+    })
+
+    if (validFiles.length > remainingSlots) {
+      alert(`最多只能上传 ${MAX_IMAGES} 张图片`)
+    }
+  }
+
+  // 删除图片
+  const removeImage = (id) => {
+    setUploadedImages(prev => prev.filter(img => img.id !== id))
+  }
+
+  // 清空所有图片
+  const clearAllImages = () => {
+    setUploadedImages([])
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   return (
     <section id="generator" className="px-6 py-20 sm:py-28 lg:px-8">
@@ -43,11 +112,25 @@ const GeneratorSection = () => {
               <div className="p-5 space-y-4">
                 {/* Mode Toggle */}
                 <div className="flex rounded-lg overflow-hidden">
-                  <button className="flex-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-white font-semibold py-2 px-4 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setMode('image-to-image')}
+                    className={`flex-1 font-semibold py-2 px-4 flex items-center justify-center gap-2 transition-all ${
+                      mode === 'image-to-image'
+                        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white'
+                        : 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-800 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
                     <Image className="h-4 w-4" />
                     Image to Image
                   </button>
-                  <button className="flex-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-800 py-2 px-4 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setMode('text-to-image')}
+                    className={`flex-1 font-semibold py-2 px-4 flex items-center justify-center gap-2 transition-all ${
+                      mode === 'text-to-image'
+                        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white'
+                        : 'bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-800 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
                     <Sparkles className="h-4 w-4" />
                     Text to Image
                   </button>
@@ -91,34 +174,99 @@ const GeneratorSection = () => {
 
                 {/* Reference Images */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Images className="h-4 w-4 text-yellow-500" />
-                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Reference Image</span>
-                    <span className="text-sm">0/9</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Images className="h-4 w-4 text-yellow-500" />
+                      <span className="text-gray-700 dark:text-gray-300 font-semibold">Reference Image</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{uploadedImages.length}/{MAX_IMAGES}</span>
+                    </div>
+                    {uploadedImages.length > 0 && (
+                      <button
+                        onClick={clearAllImages}
+                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                      >
+                        清空全部
+                      </button>
+                    )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <label className="aspect-square border-2 border-dashed border-yellow-300 dark:border-yellow-700 rounded-lg flex flex-col items-center justify-center hover:border-amber-400 dark:hover:border-amber-600 transition-colors bg-yellow-50/50 dark:bg-yellow-950/20 cursor-pointer">
-                      <input type="file" className="hidden" accept="image/*" multiple />
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">+</div>
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Add Image</span>
-                        <span className="block text-xs text-gray-500 dark:text-gray-500 mt-1">Max 10MB</span>
+
+                  <div
+                    className="grid grid-cols-3 gap-3"
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                  >
+                    {/* 显示已上传的图片 */}
+                    {uploadedImages.map((img) => (
+                      <div key={img.id} className="relative aspect-square group">
+                        <img
+                          src={img.preview}
+                          alt={img.name}
+                          className="w-full h-full object-cover rounded-lg border-2 border-yellow-300 dark:border-yellow-700"
+                        />
+                        <button
+                          onClick={() => removeImage(img.id)}
+                          className="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 rounded-b-lg truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                          {img.name}
+                        </div>
                       </div>
-                    </label>
+                    ))}
+
+                    {/* 添加图片按钮 */}
+                    {uploadedImages.length < MAX_IMAGES && (
+                      <label className="aspect-square border-2 border-dashed border-yellow-300 dark:border-yellow-700 rounded-lg flex flex-col items-center justify-center hover:border-amber-400 dark:hover:border-amber-600 hover:bg-yellow-50 dark:hover:bg-yellow-950/30 transition-colors bg-yellow-50/50 dark:bg-yellow-950/20 cursor-pointer">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          multiple
+                          onChange={handleFileSelect}
+                        />
+                        <div className="text-center">
+                          <div className="text-3xl text-amber-500 mb-1">+</div>
+                          <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">Add Image</span>
+                          <span className="block text-xs text-gray-500 dark:text-gray-500 mt-0.5">Max 10MB</span>
+                        </div>
+                      </label>
+                    )}
                   </div>
+
+                  {uploadedImages.length === 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                      支持拖放上传，或点击添加图片
+                    </p>
+                  )}
                 </div>
 
                 {/* Prompt Input */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-yellow-500" />
-                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Main Prompt</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-yellow-500" />
+                      <span className="text-gray-700 dark:text-gray-300 font-semibold">Main Prompt</span>
+                    </div>
+                    {prompt && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(prompt)
+                          alert('Prompt 已复制到剪贴板')
+                        }}
+                        className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium"
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy
+                      </button>
+                    )}
                   </div>
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="A futuristic city powered by nano technology, golden hour lighting, ultra detailed..."
-                    className="w-full px-3 py-2 border-2 border-yellow-200 dark:border-yellow-800 hover:border-amber-400 dark:hover:border-amber-600 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg resize-none h-20 transition-colors"
+                    className="w-full px-3 py-2 border-2 border-yellow-200 dark:border-yellow-800 hover:border-amber-400 dark:hover:border-amber-600 focus:border-amber-500 dark:focus:border-amber-500 focus:outline-none bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg resize-none h-24 transition-colors"
                   />
                 </div>
 
