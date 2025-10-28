@@ -1,11 +1,15 @@
 import React, { useState, useRef } from 'react'
-import { Rocket, Sparkles, Image, Zap, Images, Crown, X, Copy } from 'lucide-react'
+import { Rocket, Sparkles, Image, Zap, Images, Crown, X, Copy, Loader2 } from 'lucide-react'
+import { generateImage, isApiKeyConfigured } from '../services/geminiApi'
 
 const GeneratorSection = () => {
   const [prompt, setPrompt] = useState('')
   const [selectedModel, setSelectedModel] = useState('nano-banana')
   const [uploadedImages, setUploadedImages] = useState([])
   const [mode, setMode] = useState('image-to-image') // 'image-to-image' or 'text-to-image'
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedResults, setGeneratedResults] = useState([])
+  const [error, setError] = useState('')
   const fileInputRef = useRef(null)
 
   const MAX_IMAGES = 9
@@ -71,6 +75,54 @@ const GeneratorSection = () => {
     setUploadedImages([])
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+  }
+
+  // 处理图片生成
+  const handleGenerate = async () => {
+    // 清除之前的错误
+    setError('')
+
+    // 验证 API Key
+    if (!isApiKeyConfigured()) {
+      setError('请先在 .env.local 文件中配置 VITE_OPENROUTER_API_KEY')
+      return
+    }
+
+    // 验证输入
+    if (!prompt.trim()) {
+      setError('请输入提示词')
+      return
+    }
+
+    if (uploadedImages.length === 0) {
+      setError('请至少上传一张图片')
+      return
+    }
+
+    setIsGenerating(true)
+
+    try {
+      const result = await generateImage(prompt, uploadedImages)
+
+      // 添加生成结果到列表
+      setGeneratedResults(prev => [
+        {
+          id: Date.now(),
+          prompt: prompt,
+          result: result,
+          timestamp: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+
+      // 成功后可以选择清空输入
+      // setPrompt('')
+      // clearAllImages()
+    } catch (err) {
+      setError(err.message || '生成失败，请重试')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -272,12 +324,33 @@ const GeneratorSection = () => {
 
                 {/* Generate Button */}
                 <button
-                  disabled
-                  className="w-full py-3 px-6 bg-gradient-to-r from-yellow-400 to-amber-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !prompt.trim() || uploadedImages.length === 0}
+                  className={`w-full py-3 px-6 bg-gradient-to-r from-yellow-400 to-amber-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 ${
+                    isGenerating || !prompt.trim() || uploadedImages.length === 0
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:scale-105 active:scale-95'
+                  }`}
                 >
-                  <Zap className="h-5 w-5" />
-                  Generate Now
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-5 w-5" />
+                      Generate Now
+                    </>
+                  )}
                 </button>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -291,26 +364,87 @@ const GeneratorSection = () => {
           </div>
 
           {/* Right Panel - Output Gallery */}
-          <div className="min-h-[600px] border-2 border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-white via-yellow-50/30 to-amber-50/20 dark:from-gray-900 dark:via-yellow-950/10 dark:to-amber-950/10 shadow-xl rounded-2xl overflow-hidden">
+          <div className="min-h-[600px] border-2 border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-white via-yellow-50/30 to-amber-50/20 dark:from-gray-900 dark:via-yellow-950/10 dark:to-amber-950/10 shadow-xl rounded-2xl overflow-hidden flex flex-col">
             {/* Header */}
             <div className="p-5 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-400 dark:to-amber-400 bg-clip-text text-transparent">
-                Output Gallery
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Your ultra-fast AI creations appear here instantly</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-400 dark:to-amber-400 bg-clip-text text-transparent">
+                    Output Gallery
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Your ultra-fast AI creations appear here instantly</p>
+                </div>
+                {generatedResults.length > 0 && (
+                  <button
+                    onClick={() => setGeneratedResults([])}
+                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                  >
+                    清空全部
+                  </button>
+                )}
+              </div>
             </div>
 
             <hr className="h-0.5 bg-yellow-200 dark:bg-yellow-800 border-0" />
 
-            {/* Empty State */}
-            <div className="p-5 h-[500px] flex items-center justify-center">
-              <div className="text-center">
-                <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-700 mb-4 inline-block">
-                  <Image className="h-16 w-16 text-gray-400 dark:text-gray-500" />
+            {/* Content */}
+            <div className="flex-1 p-5 overflow-y-auto">
+              {isGenerating ? (
+                /* Loading State */
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <Loader2 className="h-16 w-16 text-amber-500 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-700 dark:text-gray-300 font-semibold">AI 正在生成中...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">请稍等片刻</p>
+                  </div>
                 </div>
-                <p className="text-gray-700 dark:text-gray-300 font-semibold">Ready for instant generation</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Enter your prompt and unleash the power</p>
-              </div>
+              ) : generatedResults.length > 0 ? (
+                /* Results Display */
+                <div className="space-y-4">
+                  {generatedResults.map((result) => (
+                    <div
+                      key={result.id}
+                      className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-yellow-200 dark:border-yellow-800 shadow-sm"
+                    >
+                      <div className="mb-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <span className="text-amber-600 dark:text-amber-400">Prompt:</span> {result.prompt}
+                          </p>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(result.result)
+                              alert('结果已复制到剪贴板')
+                            }}
+                            className="flex-shrink-0 p-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {new Date(result.timestamp).toLocaleString('zh-CN')}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                        <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                          {result.result}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Empty State */
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-700 mb-4 inline-block">
+                      <Image className="h-16 w-16 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-gray-700 dark:text-gray-300 font-semibold">Ready for instant generation</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Enter your prompt and unleash the power</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
