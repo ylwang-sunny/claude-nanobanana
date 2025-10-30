@@ -25,6 +25,31 @@
 npm install
 ```
 
+## ⚙️ 环境配置
+
+1. 复制环境变量示例文件:
+```bash
+cp .env.example .env.local
+```
+
+2. 在 `.env.local` 中配置以下环境变量:
+
+```env
+# OpenRouter API Key (用于 Gemini AI 图像生成)
+VITE_OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# Supabase 配置 (用于用户认证)
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+3. 获取 Supabase 配置:
+   - 访问 [Supabase Dashboard](https://app.supabase.com)
+   - 创建新项目或选择现有项目
+   - 在项目设置中找到 API 配置
+   - 配置 OAuth 提供商(GitHub 和 Google)
+   - 详细配置说明请查看 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
+
 ## 🚀 运行
 
 ```bash
@@ -38,6 +63,33 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## 🌐 部���
+
+### Vercel 部署
+
+1. 将代码推送到 GitHub
+2. 在 [Vercel](https://vercel.com) 导入项目
+3. 在 Vercel 项目设置中添加环境变量:
+   - `VITE_OPENROUTER_API_KEY`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SITE_URL` (设置为你的 Vercel 域名)
+4. 部署完成后,在 Supabase 项目设置中添加生产环境的重定向 URL
+
+### Netlify 部署
+
+1. 将代码推送到 GitHub
+2. 在 [Netlify](https://netlify.com) 导入项目
+3. 构建设置:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+4. 在环境变量中添加相同的配置
+5. 更新 Supabase 的授权回调 URL
+
+**重要**: 部署后需要在 Supabase Dashboard 中更新以下设置:
+- Authentication > URL Configuration > Site URL
+- Authentication > URL Configuration > Redirect URLs (添加生产环境的回调 URL)
 
 ## 📁 项目结构
 
