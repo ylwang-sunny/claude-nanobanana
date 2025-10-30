@@ -5,22 +5,22 @@ const showcaseItems = [
   {
     title: 'Ultra-Fast Mountain Generation',
     description: 'Created in 0.8 seconds with Nano Banana\'s optimized neural engine',
-    image: '🏔️'
+    image: 'https://nanobanana.ai/_next/image?url=%2Fshowcase%2F1.jpeg&w=3840&q=75'
   },
   {
     title: 'Instant Garden Creation',
     description: 'Complex scene rendered in milliseconds using Nano Banana technology',
-    image: '🌸'
+    image: 'https://nanobanana.ai/_next/image?url=%2Fshowcase%2F2.png&w=3840&q=75'
   },
   {
     title: 'Real-time Beach Synthesis',
     description: 'Nano Banana delivers photorealistic results at lightning speed',
-    image: '🏖️'
+    image: 'https://nanobanana.ai/_next/image?url=%2Fshowcase%2F3.png&w=3840&q=75'
   },
   {
     title: 'Rapid Aurora Generation',
     description: 'Advanced effects processed instantly with Nano Banana AI',
-    image: '🌌'
+    image: 'https://nanobanana.ai/_next/image?url=%2Fshowcase%2F4.png&w=3840&q=75'
   }
 ]
 
@@ -41,8 +41,12 @@ const ShowcaseSection = () => {
         <div className="mx-auto mt-16 grid max-w-7xl grid-cols-1 gap-8 sm:grid-cols-2">
           {showcaseItems.map((item, index) => (
             <div key={index} className="rounded-3xl border bg-white shadow-lg dark:bg-slate-950 overflow-hidden group hover:shadow-2xl transition-all duration-300 border-yellow-200 dark:border-yellow-800">
-              <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 flex items-center justify-center">
-                <div className="text-8xl group-hover:scale-110 transition-transform duration-300">{item.image}</div>
+              <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
                 <div className="absolute top-3 right-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
                   <Zap className="h-3 w-3" />
                   Nano Banana Speed
