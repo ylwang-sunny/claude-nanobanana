@@ -10,26 +10,43 @@ const AuthCallback = () => {
     // 处理 OAuth 回调
     const handleCallback = async () => {
       try {
+        if (!supabase) {
+          throw new Error('Supabase 未配置')
+        }
+
         // 检查 URL 中是否有错误参数
-        const params = new URLSearchParams(window.location.search)
-        const errorParam = params.get('error')
-        const errorDescription = params.get('error_description')
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const searchParams = new URLSearchParams(window.location.search)
+
+        const errorParam = hashParams.get('error') || searchParams.get('error')
+        const errorDescription = hashParams.get('error_description') || searchParams.get('error_description')
 
         if (errorParam) {
           throw new Error(errorDescription || errorParam)
         }
 
-        // 等待 Supabase 处理 OAuth 回调
+        // Supabase 会自动处理 URL 中的认证参数
+        // 我们需要等待认证状态更新
+        console.log('等待认证处理...')
+
+        // 给 Supabase 一点时间处理 URL 中的认证参数
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // 获取会话
         const { data, error } = await supabase.auth.getSession()
 
         if (error) {
+          console.error('获取会话失败:', error)
           throw error
         }
 
         if (data.session) {
           // 登录成功，跳转到首页
-          console.log('登录成功:', data.session.user)
-          navigate('/', { replace: true })
+          console.log('登录成功:', data.session.user.email)
+          // 使用 setTimeout 确保状态更新完成后再跳转
+          setTimeout(() => {
+            navigate('/', { replace: true })
+          }, 100)
         } else {
           // 如果没有会话，跳转到登录页
           console.warn('没有会话，跳转到登录页')
